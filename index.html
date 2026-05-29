@@ -313,9 +313,10 @@ input:focus,select:focus,textarea:focus{outline:none;}
           <div class="dash-card orange"><div class="dc-lbl">Investido</div><div class="dc-val" id="d-inv">R$ 0,00</div><div class="dc-sub" style="color:var(--text3)">total na loja</div></div>
           <div class="dash-card gold" id="d-caixa-card"><div class="dc-lbl">Caixa Geral</div><div class="dc-val" id="d-caixa">R$ 0,00</div><div class="dc-sub" style="color:var(--text3)">lucro − invest.</div></div>
         </div>
-        <div class="dash-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="dash-grid" style="grid-template-columns:repeat(4,1fr)">
           <div class="dash-card purple"><div class="dc-lbl">Qtd. Pedidos</div><div class="dc-val" id="d-qtd">0</div></div>
           <div class="dash-card" style="border-top-color:#f39c12"><div class="dc-lbl">Pendentes</div><div class="dc-val" style="color:#f39c12" id="d-pend">0</div></div>
+          <div class="dash-card green"><div class="dc-lbl">Qtd. Camisas Vendidas</div><div class="dc-val" id="d-qtd-camisas">0</div><div class="dc-sub" style="color:var(--text3)">total de itens</div></div>
           <div class="dash-card clickable blue" onclick="goPage('receber')"><div class="dc-lbl">📥 A Receber</div><div class="dc-val" id="d-rec-total">R$ 0,00</div><div class="dc-sub" id="d-rec-info" style="color:var(--text3)">0 pendente(s)</div></div>
         </div>
         <div id="d-alerts"></div>
@@ -758,6 +759,8 @@ function renderDashboard(){
   var recPend=DB.receber.filter(function(r){return !r.pago;});
   var totalRec=recPend.reduce(function(s,r){return s+(parseFloat(r.valor_receber)||0);},0);
 
+  var qtdCamisas=DB.itensPedido.reduce(function(s,i){return s+(parseInt(i.qtd)||1);},0);
+
   document.getElementById('d-fat').textContent=brl(totalFat);
   document.getElementById('d-lucro').textContent=brl(totalLucro);
   document.getElementById('d-pct').textContent=pct+'% do faturamento';
@@ -766,6 +769,7 @@ function renderDashboard(){
   document.getElementById('d-caixa-card').className='dash-card '+(caixa>=0?'gold':'red-c');
   document.getElementById('d-qtd').textContent=DB.pedidos.length;
   document.getElementById('d-pend').textContent=pendentes.length;
+  document.getElementById('d-qtd-camisas').textContent=qtdCamisas;
   document.getElementById('d-rec-total').textContent=brl(totalRec);
   document.getElementById('d-rec-info').textContent=recPend.length+' pendente(s)'+(recVenc.length>0?' · ⚠️ '+recVenc.length+' vencido(s)':'');
 
@@ -1031,6 +1035,24 @@ function limparFormItem(){
   document.querySelectorAll('#item-cats .chip').forEach(function(b){b.classList.remove('active');});
 }
 
+function editarItemTemp(tempId){
+  var it=itensTempPedido.find(function(x){return x._tempId===tempId;});if(!it)return;
+  document.getElementById('item-desc').value=it.descricao||'';
+  document.getElementById('item-cat').value=it.categoria||'';
+  document.getElementById('item-tamanho').value=it.tamanho||'';
+  document.getElementById('item-qtd').value=it.qtd||1;
+  document.getElementById('item-compra').value=it.valor_compra||'';
+  document.getElementById('item-venda').value=it.valor_venda||'';
+  document.querySelectorAll('#item-cats .chip').forEach(function(b){b.classList.toggle('active',b.textContent===it.categoria);});
+  atualizarPreviewItem();
+  // Remove o item da lista para ser re-adicionado após edição
+  itensTempPedido=itensTempPedido.filter(function(x){return x._tempId!==tempId;});
+  renderItensTempPedido();atualizarTotalPedido();
+  // Scroll para o formulário
+  document.getElementById('item-desc').scrollIntoView({behavior:'smooth',block:'center'});
+  toast('Edite os campos e clique em "+ Adicionar item"');
+}
+
 function removerItemTemp(tempId){
   itensTempPedido=itensTempPedido.filter(function(it){return it._tempId!==tempId;});
   renderItensTempPedido();atualizarTotalPedido();
@@ -1043,6 +1065,7 @@ function renderItensTempPedido(){
     return '<div class="item-adicionado">'
       +'<div class="ia-info"><div class="ia-nome">'+it.descricao+(it.tamanho?' · '+it.tamanho:'')+'</div><div class="ia-det">'+it.categoria+' · Qtd: '+it.qtd+'</div></div>'
       +'<div class="ia-vals"><div class="ia-val">'+brl(it.valor_venda*it.qtd)+'</div></div>'
+      +'<button class="ia-rem" style="background:var(--blue);margin-right:4px" onclick="editarItemTemp('+it._tempId+')">✏️</button>'
       +'<button class="ia-rem" onclick="removerItemTemp('+it._tempId+')">✕</button>'
       +'</div>';
   }).join('');
