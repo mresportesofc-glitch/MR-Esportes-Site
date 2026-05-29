@@ -493,6 +493,40 @@ input:focus,select:focus,textarea:focus{outline:none;}
         <div id="rec-lista"></div>
       </div>
 
+      <!-- CLIENTES -->
+      <div class="page" id="page-clientes">
+        <!-- Aniversariantes do mês -->
+        <div id="aniv-box" style="display:none;margin-bottom:16px" class="alert-box blue-a">
+          <div class="alert-title" style="color:var(--blue)">🎂 Aniversariantes do mês</div>
+          <div id="aniv-lista"></div>
+        </div>
+        <div class="form-section">
+          <h3 id="cli-form-title">Novo Cliente</h3>
+          <div class="form-row">
+            <div class="form-group"><label class="lbl">Nome *</label><input class="inp" id="cli-nome" placeholder="Nome completo"/></div>
+            <div class="form-group"><label class="lbl">Telefone</label><input class="inp" id="cli-tel" placeholder="(11) 99999-9999" oninput="mascaraTel(this)"/></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="lbl">Instagram</label><input class="inp" id="cli-ig" placeholder="@usuario"/></div>
+            <div class="form-group"><label class="lbl">Aniversário</label><input class="inp" type="date" id="cli-aniv"/></div>
+          </div>
+          <div class="form-group">
+            <label class="lbl">Mora em São Paulo?</label>
+            <div class="cat-chips" id="cli-sp-row">
+              <button class="chip" onclick="selCliSP(this,true)">✅ Sim</button>
+              <button class="chip active" onclick="selCliSP(this,false)">❌ Não</button>
+            </div>
+            <input type="hidden" id="cli-sp" value="false"/>
+          </div>
+          <button class="save-btn" id="cli-save-btn" onclick="salvarCliente()">➕ Cadastrar Cliente</button>
+        </div>
+        <div class="form-group" style="margin-bottom:12px">
+          <input class="inp" id="cli-busca" placeholder="🔍 Buscar cliente..." oninput="renderClientes()"/>
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:12px" id="cli-count"></div>
+        <div id="cli-lista"></div>
+      </div>
+
       <!-- CONFIG -->
       <div class="page" id="page-config">
         <div class="config-card">
@@ -524,52 +558,6 @@ input:focus,select:focus,textarea:focus{outline:none;}
         <div class="tab" data-page="config"><div class="icon">⚙️</div>Config.</div>
       </div>
     </div>
-  </div>
-</div>
-
-<!-- PAGE CLIENTES (fora do layout principal para evitar conflito) -->
-<div id="page-clientes-modal" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:300;overflow-y:auto;padding:20px 28px 80px;">
-  <div style="max-width:800px;margin:0 auto;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-      <h2 style="font-size:20px;font-weight:800">👥 Clientes</h2>
-      <button onclick="fecharClientesModal()" style="background:var(--bg4);border:none;color:var(--text2);border-radius:20px;padding:6px 16px;font-size:13px;cursor:pointer">← Voltar</button>
-    </div>
-
-    <!-- Aniversariantes do mês -->
-    <div id="aniv-box" style="display:none" class="alert-box blue-a" style="margin-bottom:16px">
-      <div class="alert-title" style="color:var(--blue)">🎂 Aniversariantes do mês</div>
-      <div id="aniv-lista"></div>
-    </div>
-
-    <!-- Formulário -->
-    <div class="form-section">
-      <h3 id="cli-form-title">Novo Cliente</h3>
-      <div class="form-row">
-        <div class="form-group"><label class="lbl">Nome *</label><input class="inp" id="cli-nome" placeholder="Nome completo"/></div>
-        <div class="form-group"><label class="lbl">Telefone</label><input class="inp" id="cli-tel" placeholder="(11) 99999-9999"/></div>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label class="lbl">Instagram</label><input class="inp" id="cli-ig" placeholder="@usuario"/></div>
-        <div class="form-group"><label class="lbl">Aniversário</label><input class="inp" type="date" id="cli-aniv"/></div>
-      </div>
-      <div class="form-group">
-        <label class="lbl">Mora em São Paulo?</label>
-        <div class="cat-chips" id="cli-sp-row">
-          <button class="chip" onclick="selCliSP(this,true)">✅ Sim</button>
-          <button class="chip active" onclick="selCliSP(this,false)">❌ Não</button>
-        </div>
-        <input type="hidden" id="cli-sp" value="false"/>
-      </div>
-      <button class="save-btn" id="cli-save-btn" onclick="salvarCliente()">➕ Cadastrar Cliente</button>
-    </div>
-
-    <!-- Busca -->
-    <div class="form-group" style="margin-bottom:12px">
-      <input class="inp" id="cli-busca" placeholder="🔍 Buscar cliente..." oninput="renderClientes()"/>
-    </div>
-
-    <div style="font-size:12px;color:var(--text3);margin-bottom:12px" id="cli-count"></div>
-    <div id="cli-lista"></div>
   </div>
 </div>
 
@@ -787,15 +775,6 @@ var pageTitles={dashboard:'Início',pedidos:'Pedidos','novo-pedido':'Novo Pedido
 function goPage(pg){
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
   var el=document.getElementById('page-'+pg);if(el)el.classList.add('active');
-  // Clientes usa modal próprio
-  if(pg==='clientes'){
-    document.getElementById('page-clientes-modal').style.display='block';
-    renderClientes();renderAniversariantes();
-    document.querySelectorAll('#sidebar .nav-item').forEach(function(n){n.classList.toggle('active',n.getAttribute('data-page')==='clientes');});
-    document.querySelectorAll('#mobile-tabs .tab').forEach(function(t){t.classList.toggle('active',t.getAttribute('data-page')==='clientes');});
-    return;
-  }
-  document.getElementById('page-clientes-modal').style.display='none';
   document.querySelectorAll('#sidebar .nav-item').forEach(function(n){
     var np=n.getAttribute('data-page');
     n.classList.toggle('active',np===pg||(pg==='novo-pedido'&&np==='pedidos'));
@@ -809,15 +788,14 @@ function goPage(pg){
   if(pg==='dashboard')renderDashboard();
   if(pg==='pedidos')renderPedidos();
   if(pg==='catalogo')renderCatalogo();
+  if(pg==='clientes'){renderClientes();renderAniversariantes();}
   if(pg==='investimentos')renderInvest();
   if(pg==='receber')renderReceber();
   if(pg==='config')renderConfig();
   document.getElementById('content').scrollTop=0;
 }
-function fecharClientesModal(){
-  document.getElementById('page-clientes-modal').style.display='none';
-  goPage('dashboard');
-}
+function fecharClientesModal(){goPage('dashboard');}
+
 document.querySelectorAll('#sidebar .nav-item').forEach(function(n){n.addEventListener('click',function(){goPage(n.getAttribute('data-page'));});});
 document.querySelectorAll('#mobile-tabs .tab').forEach(function(t){t.addEventListener('click',function(){goPage(t.getAttribute('data-page'));});});
 function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('show');}
@@ -905,6 +883,16 @@ function renderDashboard(){
   }).join('');
 }
 
+// MÁSCARA TELEFONE
+function mascaraTel(input){
+  var v=input.value.replace(/\D/g,'').substring(0,11);
+  if(v.length>10){v=v.replace(/^(\d{2})(\d{5})(\d{4}).*/,'($1) $2-$3');}
+  else if(v.length>6){v=v.replace(/^(\d{2})(\d{4})(\d*)/,'($1) $2-$3');}
+  else if(v.length>2){v=v.replace(/^(\d{2})(\d*)/,'($1) $2');}
+  else if(v.length>0){v='('+v;}
+  input.value=v;
+}
+
 // PEDIDOS
 function limparFiltros(){
   document.getElementById('h-status').value='';
@@ -939,9 +927,13 @@ function renderPedidos(){
     lista.map(function(p){
       var fat=calcPedidoFat(p);var lucro=calcPedidoLucro(p);
       var itens=DB.itensPedido.filter(function(i){return i.pedido_id===p.id;});
+      var resumoItens=itens.map(function(it){return it.descricao+(it.tamanho?' ('+it.tamanho+')':'')+(it.qtd>1?' x'+it.qtd:'');}).join(', ');
       return '<div class="pedido-card" style="border-left-color:'+badgeBg(p.status)+'">'
         +'<div class="pedido-card-header">'
-        +'<div><div class="pedido-cliente">'+p.cliente+'</div><div class="pedido-meta">'+dataBR(p.data_pedido)+' · '+itens.length+' item(s)</div></div>'
+        +'<div><div class="pedido-cliente">'+p.cliente+'</div>'
+        +'<div class="pedido-meta">'+dataBR(p.data_pedido)+' · '+itens.length+' item(s)</div>'
+        +(resumoItens?'<div style="font-size:11px;color:var(--text3);margin-top:3px;max-width:300px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+resumoItens+'</div>':'')
+        +'</div>'
         +'<div class="pedido-vals"><div class="pedido-total">'+brl(fat)+'</div><div class="pedido-lucro" style="color:'+(lucro>=0?'var(--green)':'var(--red)')+'">+'+brl(lucro)+'</div><span class="badge" style="background:'+badgeBg(p.status)+'">'+p.status+'</span></div>'
         +'</div>'
         +'<div class="pedido-itens">'
