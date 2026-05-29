@@ -556,6 +556,19 @@ input:focus,select:focus,textarea:focus{outline:none;}
   </div>
 </div>
 
+<!-- MODAL CONFIRMAÇÃO DELETE -->
+<div id="modal-confirm" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:600;backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--bg2);border:1px solid var(--red);border-radius:20px;width:100%;max-width:420px;padding:28px;text-align:center;">
+    <div style="font-size:40px;margin-bottom:12px">🗑️</div>
+    <h2 style="font-size:18px;font-weight:800;margin-bottom:8px" id="modal-confirm-titulo">Deletar pedido?</h2>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:24px" id="modal-confirm-desc"></p>
+    <div style="display:flex;gap:12px">
+      <button onclick="fecharModalConfirm()" style="flex:1;background:var(--bg4);color:var(--text2);border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:700;cursor:pointer">Cancelar</button>
+      <button id="modal-confirm-btn" style="flex:1;background:var(--red);color:#fff;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:700;cursor:pointer">Deletar</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -1111,6 +1124,8 @@ async function salvarPedido(){
     }
     await carregarDados();
     editandoPedidoId=null;itensTempPedido=[];
+    // Backup automático
+    salvarBackupAuto();
     goPage('pedidos');
   }catch(e){toast('Erro: '+e.message,'err');}
   hideLoading();
@@ -1137,16 +1152,33 @@ async function editarPedido(id){
 }
 
 async function deletarPedido(id){
-  if(!confirm('Deletar este pedido?'))return;
-  showLoading();
+  var p=DB.pedidos.find(function(x){return x.id===id;});
+  if(!p)return;
+  var itens=DB.itensPedido.filter(function(i){return i.pedido_id===id;});
+  document.getElementById('modal-confirm-titulo').textContent='Deletar pedido de '+p.cliente+'?';
+  document.getElementById('modal-confirm-desc').textContent=itens.length+' item(s) · '+brl(calcPedidoFat(p))+' · '+p.status;
+  document.getElementById('modal-confirm-btn').onclick=async function(){
+    fecharModalConfirm();
+    showLoading();
+    try{
+      await sb.from('itens_pedido').delete().eq('pedido_id',id);
+      await sb.from('pedidos').delete().eq('id',id).eq('user_id',currentUser.id);
+      DB.pedidos=DB.pedidos.filter(function(p){return p.id!==id;});
+      DB.itensPedido=DB.itensPedido.filter(function(i){return i.pedido_id!==id;});
+      toast('Pedido removido.');renderDashboard();renderPedidos();
+    }catch(e){toast('Erro: '+e.message,'err');}
+    hideLoading();
+  };
+  document.getElementById('modal-confirm').style.display='flex';
+}
+function fecharModalConfirm(){document.getElementById('modal-confirm').style.display='none';}
+
+// BACKUP AUTOMÁTICO — salva no localStorage sempre que dados mudam
+function salvarBackupAuto(){
   try{
-    await sb.from('itens_pedido').delete().eq('pedido_id',id);
-    await sb.from('pedidos').delete().eq('id',id).eq('user_id',currentUser.id);
-    DB.pedidos=DB.pedidos.filter(function(p){return p.id!==id;});
-    DB.itensPedido=DB.itensPedido.filter(function(i){return i.pedido_id!==id;});
-    toast('Pedido removido.');renderDashboard();renderPedidos();
-  }catch(e){toast('Erro: '+e.message,'err');}
-  hideLoading();
+    var dados={pedidos:DB.pedidos,itensPedido:DB.itensPedido,produtos:DB.produtos,invest:DB.invest,receber:DB.receber,atualizadoEm:new Date().toISOString()};
+    localStorage.setItem('mr_backup_auto',JSON.stringify(dados));
+  }catch(e){}
 }
 
 // CATÁLOGO
@@ -1246,6 +1278,7 @@ async function salvarInv(){
       DB.invest.unshift(obj);toast('Registrado!');
     }
     document.getElementById('inv-valor').value='';document.getElementById('inv-motivo').value='';document.getElementById('inv-data').value='';
+    salvarBackupAuto();
     renderInvest();renderDashboard();
   }catch(e){toast('Erro: '+e.message,'err');}
   hideLoading();
@@ -1305,6 +1338,7 @@ async function salvarRec(){
       DB.receber.unshift(obj);toast('Registrado!');
     }
     document.getElementById('rec-nome').value='';document.getElementById('rec-data').value='';document.getElementById('rec-valor').value='';
+    salvarBackupAuto();
     renderReceber();renderDashboard();
   }catch(e){toast('Erro: '+e.message,'err');}
   hideLoading();
