@@ -659,8 +659,18 @@ async function logout(){
 
 var authResolved=false;
 async function iniciarApp(){
+  // Timeout de segurança — 5s máximo
+  var timeout=setTimeout(function(){
+    if(!authResolved){
+      authResolved=true;
+      hideSplash();hideLoading();
+      document.getElementById('layout').style.display='none';
+      document.getElementById('login-screen').classList.add('show');
+    }
+  },5000);
   try{
     var {data}=await sb.auth.getSession();
+    clearTimeout(timeout);
     if(data&&data.session&&data.session.user){
       currentUser=data.session.user;
       await entrarNoApp();
@@ -669,6 +679,7 @@ async function iniciarApp(){
       document.getElementById('login-screen').classList.add('show');
     }
   }catch(e){
+    clearTimeout(timeout);
     document.getElementById('layout').style.display='none';
     document.getElementById('login-screen').classList.add('show');
   }
