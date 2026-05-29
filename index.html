@@ -259,6 +259,7 @@ input:focus,select:focus,textarea:focus{outline:none;}
     <nav>
       <div class="nav-item active" data-page="dashboard"><span class="icon">🏠</span> Início</div>
       <div class="nav-item" data-page="pedidos"><span class="icon">📋</span> Pedidos</div>
+      <div class="nav-item" data-page="clientes"><span class="icon">👥</span> Clientes</div>
       <div class="nav-item" data-page="catalogo"><span class="icon">👕</span> Catálogo</div>
       <div class="nav-item" data-page="investimentos"><span class="icon">💰</span> Investimentos</div>
       <div class="nav-item" id="nav-receber" data-page="receber"><span class="icon">📥</span> A Receber</div>
@@ -301,6 +302,12 @@ input:focus,select:focus,textarea:focus{outline:none;}
           <div class="dash-card clickable blue" onclick="goPage('receber')"><div class="dc-lbl">📥 A Receber</div><div class="dc-val" id="d-rec-total">R$ 0,00</div><div class="dc-sub" id="d-rec-info" style="color:var(--text3)">0 pendente(s)</div></div>
         </div>
         <div id="d-alerts"></div>
+
+        <!-- Aniversariantes do mês -->
+        <div id="d-aniv-box" style="display:none" class="alert-box blue-a">
+          <div class="alert-title" style="color:var(--blue)">🎂 Aniversariantes do mês</div>
+          <div id="d-aniv-lista"></div>
+        </div>
         <div class="sec-hd"><h2>Últimos Pedidos</h2></div>
         <div id="d-ops"></div>
         <div id="d-ops-empty" class="empty" style="display:none"><div class="empty-icon">📦</div><p>Nenhum pedido ainda.</p></div>
@@ -347,7 +354,12 @@ input:focus,select:focus,textarea:focus{outline:none;}
         <div class="form-section">
           <h3>📋 Informações do Pedido</h3>
           <div class="form-row">
-            <div class="form-group"><label class="lbl">Cliente *</label><input class="inp" id="p-cliente" placeholder="Nome do cliente"/></div>
+            <div class="form-group"><label class="lbl">Cliente *</label>
+            <select class="inp" id="p-cliente-sel" onchange="selecionarClientePedido()">
+              <option value="">Selecione um cliente...</option>
+            </select>
+            <input class="inp" id="p-cliente" placeholder="Ou digite o nome manualmente" style="margin-top:8px;display:none"/>
+          </div>
             <div class="form-group"><label class="lbl">Data do pedido</label><input class="inp" type="date" id="p-data"/></div>
           </div>
           <div class="form-row">
@@ -490,6 +502,7 @@ input:focus,select:focus,textarea:focus{outline:none;}
         <div class="config-card">
           <h3>📊 Estatísticas</h3>
           <div class="stat-row"><span class="sr-lbl">Total de pedidos</span><span class="sr-val" id="cfg-qtd-pedidos">0</span></div>
+          <div class="stat-row"><span class="sr-lbl">Clientes cadastrados</span><span class="sr-val" id="cfg-qtd-cli">0</span></div>
           <div class="stat-row"><span class="sr-lbl">Produtos no catálogo</span><span class="sr-val" id="cfg-qtd-produtos">0</span></div>
           <div class="stat-row"><span class="sr-lbl">Total de investimentos</span><span class="sr-val" id="cfg-qtd-inv">0</span></div>
           <div class="stat-row"><span class="sr-lbl">Registros a receber</span><span class="sr-val" id="cfg-qtd-rec">0</span></div>
@@ -506,11 +519,68 @@ input:focus,select:focus,textarea:focus{outline:none;}
       <div class="tabs-row">
         <div class="tab active" data-page="dashboard"><div class="icon">🏠</div>Início</div>
         <div class="tab" data-page="pedidos"><div class="icon">📋</div>Pedidos</div>
-        <div class="tab" data-page="catalogo"><div class="icon">👕</div>Catálogo</div>
+        <div class="tab" data-page="clientes"><div class="icon">👥</div>Clientes</div>
         <div class="tab" id="tab-receber" data-page="receber"><div class="icon">📥</div>A Receber</div>
         <div class="tab" data-page="config"><div class="icon">⚙️</div>Config.</div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- PAGE CLIENTES (fora do layout principal para evitar conflito) -->
+<div id="page-clientes-modal" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:300;overflow-y:auto;padding:20px 28px 80px;">
+  <div style="max-width:800px;margin:0 auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <h2 style="font-size:20px;font-weight:800">👥 Clientes</h2>
+      <button onclick="fecharClientesModal()" style="background:var(--bg4);border:none;color:var(--text2);border-radius:20px;padding:6px 16px;font-size:13px;cursor:pointer">← Voltar</button>
+    </div>
+
+    <!-- Aniversariantes do mês -->
+    <div id="aniv-box" style="display:none" class="alert-box blue-a" style="margin-bottom:16px">
+      <div class="alert-title" style="color:var(--blue)">🎂 Aniversariantes do mês</div>
+      <div id="aniv-lista"></div>
+    </div>
+
+    <!-- Formulário -->
+    <div class="form-section">
+      <h3 id="cli-form-title">Novo Cliente</h3>
+      <div class="form-row">
+        <div class="form-group"><label class="lbl">Nome *</label><input class="inp" id="cli-nome" placeholder="Nome completo"/></div>
+        <div class="form-group"><label class="lbl">Telefone</label><input class="inp" id="cli-tel" placeholder="(11) 99999-9999"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="lbl">Instagram</label><input class="inp" id="cli-ig" placeholder="@usuario"/></div>
+        <div class="form-group"><label class="lbl">Aniversário</label><input class="inp" type="date" id="cli-aniv"/></div>
+      </div>
+      <div class="form-group">
+        <label class="lbl">Mora em São Paulo?</label>
+        <div class="cat-chips" id="cli-sp-row">
+          <button class="chip" onclick="selCliSP(this,true)">✅ Sim</button>
+          <button class="chip active" onclick="selCliSP(this,false)">❌ Não</button>
+        </div>
+        <input type="hidden" id="cli-sp" value="false"/>
+      </div>
+      <button class="save-btn" id="cli-save-btn" onclick="salvarCliente()">➕ Cadastrar Cliente</button>
+    </div>
+
+    <!-- Busca -->
+    <div class="form-group" style="margin-bottom:12px">
+      <input class="inp" id="cli-busca" placeholder="🔍 Buscar cliente..." oninput="renderClientes()"/>
+    </div>
+
+    <div style="font-size:12px;color:var(--text3);margin-bottom:12px" id="cli-count"></div>
+    <div id="cli-lista"></div>
+  </div>
+</div>
+
+<!-- MODAL HISTÓRICO CLIENTE -->
+<div id="modal-cli-hist" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:500;backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:20px;width:100%;max-width:600px;max-height:90vh;overflow-y:auto;padding:24px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h2 style="font-size:18px;font-weight:800" id="cli-hist-title">Histórico</h2>
+      <button onclick="document.getElementById('modal-cli-hist').style.display='none'" style="background:var(--bg4);border:none;color:var(--text2);border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer">✕</button>
+    </div>
+    <div id="cli-hist-content"></div>
   </div>
 </div>
 
@@ -558,7 +628,7 @@ const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
 
 var currentUser=null;
-var DB={pedidos:[],itensPedido:[],produtos:[],invest:[],receber:[]};
+var DB={pedidos:[],itensPedido:[],produtos:[],invest:[],receber:[],clientes:[]};
 var itensTempPedido=[];
 var editandoPedidoId=null;
 var catEditId=null;
@@ -647,7 +717,7 @@ async function entrarNoApp(){
 
 async function logout(){
   await sb.auth.signOut();
-  currentUser=null;DB={pedidos:[],itensPedido:[],produtos:[],invest:[],receber:[]};
+  currentUser=null;DB={pedidos:[],itensPedido:[],produtos:[],invest:[],receber:[],clientes:[]};
   document.getElementById('layout').style.display='none';
   document.getElementById('login-screen').classList.add('show');
 }
@@ -694,29 +764,38 @@ document.addEventListener('keydown',function(e){if(e.key==='Enter'&&document.get
 async function carregarDados(){
   showLoading();
   try{
-    var [p,it,pr,inv,rec]=await Promise.all([
+    var [p,it,pr,inv,rec,cli]=await Promise.all([
       sb.from('pedidos').select('*').eq('user_id',currentUser.id).order('id',{ascending:false}),
       sb.from('itens_pedido').select('*').eq('user_id',currentUser.id),
       sb.from('produtos').select('*').eq('user_id',currentUser.id).order('nome'),
       sb.from('investimentos').select('*').eq('user_id',currentUser.id).order('id',{ascending:false}),
       sb.from('receber').select('*').eq('user_id',currentUser.id).order('id',{ascending:false}),
+      sb.from('clientes').select('*').eq('user_id',currentUser.id).order('nome'),
     ]);
     DB.pedidos=p.data||[];
     DB.itensPedido=it.data||[];
     DB.produtos=pr.data||[];
     DB.invest=inv.data||[];
     DB.receber=rec.data||[];
+    DB.clientes=cli.data||[];
   }catch(e){toast('Erro ao carregar dados.','err');}
   hideLoading();
 }
 
 // NAV
-var pageTitles={dashboard:'Início',pedidos:'Pedidos','novo-pedido':'Novo Pedido',catalogo:'Catálogo',investimentos:'Investimentos',receber:'A Receber',config:'Configurações'};
+var pageTitles={dashboard:'Início',pedidos:'Pedidos','novo-pedido':'Novo Pedido',catalogo:'Catálogo',clientes:'Clientes',investimentos:'Investimentos',receber:'A Receber',config:'Configurações'};
 function goPage(pg){
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
   var el=document.getElementById('page-'+pg);if(el)el.classList.add('active');
-  var navPages=['dashboard','pedidos','catalogo','investimentos','receber','config'];
-  var tabPages=['dashboard','pedidos','catalogo','receber','config'];
+  // Clientes usa modal próprio
+  if(pg==='clientes'){
+    document.getElementById('page-clientes-modal').style.display='block';
+    renderClientes();renderAniversariantes();
+    document.querySelectorAll('#sidebar .nav-item').forEach(function(n){n.classList.toggle('active',n.getAttribute('data-page')==='clientes');});
+    document.querySelectorAll('#mobile-tabs .tab').forEach(function(t){t.classList.toggle('active',t.getAttribute('data-page')==='clientes');});
+    return;
+  }
+  document.getElementById('page-clientes-modal').style.display='none';
   document.querySelectorAll('#sidebar .nav-item').forEach(function(n){
     var np=n.getAttribute('data-page');
     n.classList.toggle('active',np===pg||(pg==='novo-pedido'&&np==='pedidos'));
@@ -734,6 +813,10 @@ function goPage(pg){
   if(pg==='receber')renderReceber();
   if(pg==='config')renderConfig();
   document.getElementById('content').scrollTop=0;
+}
+function fecharClientesModal(){
+  document.getElementById('page-clientes-modal').style.display='none';
+  goPage('dashboard');
 }
 document.querySelectorAll('#sidebar .nav-item').forEach(function(n){n.addEventListener('click',function(){goPage(n.getAttribute('data-page'));});});
 document.querySelectorAll('#mobile-tabs .tab').forEach(function(t){t.addEventListener('click',function(){goPage(t.getAttribute('data-page'));});});
@@ -774,6 +857,21 @@ function renderDashboard(){
     if(tabRec){var d=document.createElement('span');d.className='dot';d.textContent=recVenc.length;tabRec.appendChild(d);}
     if(navRec){var d2=document.createElement('span');d2.className='nbadge';d2.textContent=recVenc.length;navRec.appendChild(d2);}
   }
+
+  // Aniversariantes do mês
+  var mesAtual=new Date().getMonth()+1;
+  var anivMes=DB.clientes.filter(function(c){
+    if(!c.aniversario)return false;
+    return parseInt(c.aniversario.split('-')[1])===mesAtual;
+  });
+  var anivBox=document.getElementById('d-aniv-box');
+  if(anivMes.length>0){
+    anivBox.style.display='block';
+    document.getElementById('d-aniv-lista').innerHTML=anivMes.map(function(c){
+      var dia=c.aniversario.split('-')[2];
+      return '<div class="alert-item"><span class="ai-name">🎂 '+c.nome+'</span><span style="font-size:12px;color:var(--text2)">dia '+dia+(c.telefone?' · '+c.telefone:'')+'</span></div>';
+    }).join('');
+  }else{anivBox.style.display='none';}
 
   var al=document.getElementById('d-alerts');var html='';
   if(recVenc.length>0){
@@ -940,6 +1038,8 @@ function abrirNovoPedido(){
   document.getElementById('p-frete').value='';
   document.getElementById('p-status').value='Pendente';
   document.querySelectorAll('#p-status-row .chip').forEach(function(b){b.classList.toggle('active',b.textContent==='Pendente');});
+  preencherSelectClientes();
+  document.getElementById('p-cliente-sel').value='';
   limparFormItem();
   renderItensTempPedido();
   atualizarTotalPedido();
@@ -1070,8 +1170,8 @@ function renderItensTempPedido(){
 }
 
 async function salvarPedido(){
-  var cli=document.getElementById('p-cliente').value.trim();
-  if(!cli){toast('Informe o cliente!','err');return;}
+  var cli=document.getElementById('p-cliente-sel').value||document.getElementById('p-cliente').value.trim();
+  if(!cli){toast('Selecione ou informe o cliente!','err');return;}
   if(itensTempPedido.length===0){toast('Adicione pelo menos um item!','err');return;}
   var obj={
     user_id:currentUser.id,
@@ -1405,6 +1505,8 @@ function renderConfig(){
   document.getElementById('cfg-qtd-produtos').textContent=DB.produtos.length;
   document.getElementById('cfg-qtd-inv').textContent=DB.invest.length;
   document.getElementById('cfg-qtd-rec').textContent=DB.receber.length;
+  var cfgCli=document.getElementById('cfg-qtd-cli');
+  if(cfgCli)cfgCli.textContent=DB.clientes.length;
 }
 function exportarBackup(){
   var dados={pedidos:DB.pedidos,itensPedido:DB.itensPedido,produtos:DB.produtos,invest:DB.invest,receber:DB.receber,exportadoEm:new Date().toISOString()};
@@ -1414,7 +1516,154 @@ function exportarBackup(){
   URL.revokeObjectURL(url);toast('Backup exportado!');
 }
 
-// EVENT DELEGATION
+// ===== CLIENTES =====
+var cliEditId=null;
+function selCliSP(btn,val){
+  document.querySelectorAll('#cli-sp-row .chip').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');document.getElementById('cli-sp').value=val;
+}
+async function salvarCliente(){
+  var nome=document.getElementById('cli-nome').value.trim();
+  if(!nome){toast('Informe o nome!','err');return;}
+  var obj={
+    nome:nome,
+    telefone:document.getElementById('cli-tel').value.trim()||null,
+    instagram:document.getElementById('cli-ig').value.trim()||null,
+    mora_sp:document.getElementById('cli-sp').value==='true',
+    aniversario:document.getElementById('cli-aniv').value||null
+  };
+  showLoading();
+  try{
+    if(cliEditId){
+      await sb.from('clientes').update(obj).eq('id',cliEditId).eq('user_id',currentUser.id);
+      DB.clientes=DB.clientes.map(function(c){return c.id===cliEditId?Object.assign({},c,obj):c;});
+      cliEditId=null;
+      document.getElementById('cli-form-title').textContent='Novo Cliente';
+      document.getElementById('cli-save-btn').textContent='➕ Cadastrar Cliente';
+      document.getElementById('cli-save-btn').className='save-btn';
+      toast('Cliente atualizado!');
+    }else{
+      obj.id=uid();obj.user_id=currentUser.id;
+      await sb.from('clientes').insert(obj);
+      DB.clientes.push(obj);
+      DB.clientes.sort(function(a,b){return a.nome.localeCompare(b.nome);});
+      toast('Cliente cadastrado!');
+    }
+    document.getElementById('cli-nome').value='';
+    document.getElementById('cli-tel').value='';
+    document.getElementById('cli-ig').value='';
+    document.getElementById('cli-aniv').value='';
+    document.getElementById('cli-sp').value='false';
+    document.querySelectorAll('#cli-sp-row .chip').forEach(function(b,i){b.classList.toggle('active',i===1);});
+    renderClientes();renderAniversariantes();preencherSelectClientes();
+  }catch(e){toast('Erro: '+e.message,'err');}
+  hideLoading();
+}
+function editarCliente(id){
+  var c=DB.clientes.find(function(x){return x.id===id;});if(!c)return;
+  cliEditId=id;
+  document.getElementById('cli-nome').value=c.nome||'';
+  document.getElementById('cli-tel').value=c.telefone||'';
+  document.getElementById('cli-ig').value=c.instagram||'';
+  document.getElementById('cli-aniv').value=c.aniversario||'';
+  document.getElementById('cli-sp').value=c.mora_sp?'true':'false';
+  document.querySelectorAll('#cli-sp-row .chip').forEach(function(b,i){b.classList.toggle('active',(c.mora_sp&&i===0)||(!c.mora_sp&&i===1));});
+  document.getElementById('cli-form-title').textContent='✏️ Editando';
+  document.getElementById('cli-save-btn').textContent='✔ Salvar';
+  document.getElementById('cli-save-btn').className='save-btn orange';
+  document.getElementById('page-clientes-modal').scrollTop=0;
+}
+async function deletarCliente(id){
+  if(!confirm('Deletar este cliente?'))return;
+  showLoading();
+  try{
+    await sb.from('clientes').delete().eq('id',id).eq('user_id',currentUser.id);
+    DB.clientes=DB.clientes.filter(function(c){return c.id!==id;});
+    toast('Removido.');renderClientes();preencherSelectClientes();
+  }catch(e){toast('Erro: '+e.message,'err');}
+  hideLoading();
+}
+function verHistoricoCliente(id){
+  var c=DB.clientes.find(function(x){return x.id===id;});if(!c)return;
+  var pedidos=DB.pedidos.filter(function(p){return p.cliente===c.nome;});
+  document.getElementById('cli-hist-title').textContent='📋 '+c.nome;
+  var totalFat=pedidos.reduce(function(s,p){return s+calcPedidoFat(p);},0);
+  var totalLucro=pedidos.reduce(function(s,p){return s+calcPedidoLucro(p);},0);
+  var html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">'
+    +'<div class="dash-card green" style="padding:14px"><div class="dc-lbl">Faturamento</div><div class="dc-val" style="font-size:18px">'+brl(totalFat)+'</div></div>'
+    +'<div class="dash-card blue" style="padding:14px"><div class="dc-lbl">Lucro</div><div class="dc-val" style="font-size:18px">'+brl(totalLucro)+'</div></div>'
+    +'</div>';
+  if(pedidos.length===0){html+='<div class="empty"><p>Nenhum pedido ainda.</p></div>';}
+  else{
+    html+=pedidos.map(function(p){
+      var fat=calcPedidoFat(p);var lucro=calcPedidoLucro(p);
+      var itens=DB.itensPedido.filter(function(i){return i.pedido_id===p.id;});
+      return '<div class="pedido-card" style="border-left-color:'+badgeBg(p.status)+';margin-bottom:10px">'
+        +'<div style="display:flex;justify-content:space-between;align-items:flex-start">'
+        +'<div><div style="font-weight:700">'+dataBR(p.data_pedido)+'</div><div style="font-size:12px;color:var(--text3)">'+itens.length+' item(s)</div></div>'
+        +'<div style="text-align:right"><div style="font-weight:800">'+brl(fat)+'</div><div style="font-size:12px;color:'+(lucro>=0?'var(--green)':'var(--red)')+'">+'+brl(lucro)+'</div><span class="badge" style="background:'+badgeBg(p.status)+'">'+p.status+'</span></div>'
+        +'</div></div>';
+    }).join('');
+  }
+  document.getElementById('cli-hist-content').innerHTML=html;
+  document.getElementById('modal-cli-hist').style.display='flex';
+}
+function renderAniversariantes(){
+  var mesAtual=new Date().getMonth()+1;
+  var anivMes=DB.clientes.filter(function(c){
+    if(!c.aniversario)return false;
+    return parseInt(c.aniversario.split('-')[1])===mesAtual;
+  });
+  var box=document.getElementById('aniv-box');
+  if(anivMes.length>0){
+    box.style.display='block';
+    document.getElementById('aniv-lista').innerHTML=anivMes.map(function(c){
+      var dia=c.aniversario.split('-')[2];
+      return '<div class="alert-item"><span class="ai-name">🎂 '+c.nome+'</span><span style="font-size:12px;color:var(--text2)">dia '+dia+'</span></div>';
+    }).join('');
+  }else{box.style.display='none';}
+}
+function renderClientes(){
+  var busca=(document.getElementById('cli-busca').value||'').toLowerCase();
+  var lista=DB.clientes.filter(function(c){return !busca||c.nome.toLowerCase().includes(busca)||(c.telefone&&c.telefone.includes(busca))||(c.instagram&&c.instagram.toLowerCase().includes(busca));});
+  document.getElementById('cli-count').textContent=lista.length+' cliente(s)';
+  document.getElementById('cli-lista').innerHTML=lista.length===0?'<div class="empty"><div class="empty-icon">👥</div><p>Nenhum cliente cadastrado.</p></div>':
+    lista.map(function(c){
+      var pedidos=DB.pedidos.filter(function(p){return p.cliente===c.nome;});
+      return '<div class="item-card" style="flex-direction:column;align-items:flex-start;gap:10px">'
+        +'<div style="display:flex;justify-content:space-between;width:100%;align-items:flex-start">'
+        +'<div>'
+        +'<div style="font-size:15px;font-weight:800">'+c.nome+'</div>'
+        +(c.telefone?'<div style="font-size:12px;color:var(--text2);margin-top:2px">📞 '+c.telefone+'</div>':'')
+        +(c.instagram?'<div style="font-size:12px;color:var(--text2);margin-top:2px">📸 '+c.instagram+'</div>':'')
+        +(c.aniversario?'<div style="font-size:12px;color:var(--gold);margin-top:2px">🎂 '+dataBR(c.aniversario)+'</div>':'')
+        +'<div style="font-size:11px;color:var(--text3);margin-top:4px">'+pedidos.length+' pedido(s) · '+(c.mora_sp?'📍 SP':'🌎 Fora de SP')+'</div>'
+        +'</div>'
+        +'<div class="ic-btns">'
+        +'<button class="mini-btn" style="background:var(--purple)" onclick="verHistoricoCliente('+c.id+')">📋</button>'
+        +'<button class="mini-btn" style="background:var(--blue)" onclick="editarCliente('+c.id+')">✏️</button>'
+        +'<button class="mini-btn" style="background:var(--red)" onclick="deletarCliente('+c.id+')">🗑</button>'
+        +'</div></div></div>';
+    }).join('');
+}
+function preencherSelectClientes(){
+  var sel=document.getElementById('p-cliente-sel');
+  if(!sel)return;
+  var val=sel.value;
+  sel.innerHTML='<option value="">Selecione um cliente...</option>';
+  DB.clientes.forEach(function(c){
+    var opt=document.createElement('option');
+    opt.value=c.nome;opt.textContent=c.nome;
+    sel.appendChild(opt);
+  });
+  sel.value=val;
+}
+function selecionarClientePedido(){
+  var val=document.getElementById('p-cliente-sel').value;
+  document.getElementById('p-cliente').value=val;
+}
+
+// ===== EVENT DELEGATION =====
 document.addEventListener('click',function(e){
   var ep=e.target.closest('.btn-editar-pedido');if(ep){editarPedido(Number(ep.getAttribute('data-id')));return;}
   var dp=e.target.closest('.btn-deletar-pedido');if(dp){deletarPedido(Number(dp.getAttribute('data-id')));return;}
